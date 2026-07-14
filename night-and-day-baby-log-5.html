@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Night &amp; Day — Baby Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Nunito Sans', system-ui, sans-serif;
+    background: #FBF7F0; color: #33302B; min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(160deg, #232A45 0%, #2E3A63 100%);
+    color: #F5F2EA; padding: 22px 16px 18px;
+  }
+  .inner { max-width: 640px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .moon {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(143,165,229,.2); color: #C9D4F5;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; margin: 0; }
+  .subtitle { margin: 6px 0 16px; font-size: 13px; color: #B9C0D6; }
+  .totals {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    background: rgba(255,255,255,.07); border-radius: 14px; padding: 12px 8px;
+  }
+  .total { text-align: center; }
+  .total .val { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; }
+  .total .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #A8B0C9; margin-top: 2px; }
+  .c-sleep { color: #8FA5E5; } .c-feed { color: #F0B48A; } .c-diaper { color: #9CC3A5; }
+
+  nav { max-width: 640px; margin: 14px auto 0; padding: 0 16px; display: flex; gap: 8px; }
+  .tab {
+    flex: 1; padding: 9px 0; border-radius: 10px; border: 1px solid #E3DCCE;
+    background: #fff; color: #6B655B; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .tab.active { background: #2E3A63; border-color: #2E3A63; color: #F5F2EA; }
+
+  main { max-width: 640px; margin: 14px auto 40px; padding: 0 16px; display: grid; gap: 14px; }
+  .card {
+    background: #fff; border-radius: 14px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(40,35,25,.07);
+  }
+  .card.sleep  { border-top: 3px solid #5C74C4; }
+  .card.feed   { border-top: 3px solid #D98B4E; }
+  .card.diaper { border-top: 3px solid #5D9468; }
+  .card h2 { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 130px; }
+  .field.small { max-width: 110px; }
+  .field span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8A8377; }
+  input, select {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid #DDD5C6;
+    font-size: 14px; background: #FDFBF7; color: #33302B; width: 100%; font-family: inherit;
+  }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid #5C74C4; outline-offset: 1px; }
+  .add {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px; border-radius: 9px; border: none;
+    background: #2E3A63; color: #F5F2EA; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  .error { color: #B0453B; font-size: 13px; margin: 8px 0 0; }
+  ul.entries { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+  .entry {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #FAF6EE; border-radius: 9px; padding: 8px 10px; font-size: 14px;
+  }
+  .entry .body { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chip { background: #EEE7D8; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; color: #5B5548; }
+  .supp { font-size: 13px; color: #8A8377; font-style: italic; }
+  .entry-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .del, .edit { border: none; background: transparent; color: #B4AC9D; cursor: pointer; padding: 6px; font-size: 14px; border-radius: 6px; }
+  .del:hover, .edit:hover { background: #EFE9DC; }
+  .muted { color: #9A9284; font-size: 13.5px; margin: 10px 0 0; }
+  .entry.editing { flex-direction: column; align-items: stretch; gap: 8px; background: #F3EFE3; }
+  .edit-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+  .edit-form .field { flex: 1 1 130px; min-width: 110px; }
+  .edit-form .field.small { max-width: 100px; }
+  .edit-actions { display: flex; gap: 8px; }
+  .save-btn {
+    padding: 7px 12px; border-radius: 8px; border: none;
+    background: #2E3A63; color: #F5F2EA; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .cancel-btn {
+    padding: 7px 12px; border-radius: 8px; border: 1px solid #DDD5C6;
+    background: #fff; color: #6B655B; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+
+  .hist-row {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: transparent; border: none; cursor: pointer; padding: 0;
+    color: #33302B; text-align: left; font-family: inherit;
+  }
+  .hist-date { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .hist-stats { display: flex; gap: 12px; font-size: 13px; font-weight: 700; flex-wrap: wrap; justify-content: flex-end; flex: 1; }
+  .hist-detail { border-top: 1px solid #EFE9DC; margin-top: 12px; padding-top: 12px; display: grid; gap: 14px; }
+  .hist-detail h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8A8377; margin: 0 0 4px; }
+  .hist-detail p { margin: 2px 0; font-size: 14px; }
+  .hist-line { display: flex; align-items: center; gap: 4px; }
+  .hist-line .edit, .hist-line .del { padding: 3px 5px; font-size: 12px; }
+
+  .databar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .databar button {
+    flex: 1; min-width: 120px; padding: 8px; border-radius: 9px;
+    border: 1px solid #DDD5C6; background: #fff; color: #6B655B;
+    font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <div class="brand"><span class="moon">☾</span><h1>Night &amp; Day</h1></div>
+    <p class="subtitle">Baby log · day runs 8:00 AM – 8:00 AM · <span id="dayLabel"></span></p>
+    <div class="totals">
+      <div class="total"><div class="val c-sleep" id="tSleep">0m</div><div class="lbl">Sleep</div></div>
+      <div class="total"><div class="val c-feed" id="tMl">0 ml</div><div class="lbl">Intake</div></div>
+      <div class="total"><div class="val c-diaper" id="tWet">0</div><div class="lbl">Wet</div></div>
+      <div class="total"><div class="val c-diaper" id="tStool">0</div><div class="lbl">Stools</div></div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" id="tabToday">Today</button>
+  <button class="tab" id="tabHistory">History</button>
+</nav>
+
+<main id="viewToday">
+  <section class="card sleep">
+    <h2>😴 Sleep</h2>
+    <div class="form">
+      <label class="field"><span>Fell asleep</span><input type="datetime-local" id="sleepStart"></label>
+      <label class="field"><span>Woke up</span><input type="datetime-local" id="sleepEnd"></label>
+      <button class="add" id="addSleep">+ Log sleep</button>
+    </div>
+    <p class="error" id="sleepErr" hidden></p>
+    <ul class="entries" id="sleepList"></ul>
+    <p class="muted" id="sleepEmpty">No sleep logged yet today.</p>
+  </section>
+
+  <section class="card feed">
+    <h2>🍼 Formula</h2>
+    <div class="form">
+      <label class="field"><span>Time</span><input type="datetime-local" id="feedTime"></label>
+      <label class="field small"><span>Amount (ml)</span><input type="number" inputmode="numeric" min="0" placeholder="120" id="feedMl"></label>
+      <label class="field"><span>Supplements added</span><input type="text" placeholder="e.g. vitamin D, rice cereal" id="feedSupp"></label>
+      <button class="add" id="addFeed">+ Log feeding</button>
+    </div>
+    <p class="error" id="feedErr" hidden></p>
+    <ul class="entries" id="feedList"></ul>
+    <p class="muted" id="feedEmpty">No feedings logged yet today.</p>
+  </section>
+
+  <section class="card diaper">
+    <h2>👶 Diapers</h2>
+    <div class="form">
+      <label class="field"><span>Time</span><input type="datetime-local" id="diaperTime"></label>
+      <label class="field"><span>Type</span>
+        <select id="diaperType">
+          <option value="wet">Wet</option>
+          <option value="stool">Stool</option>
+          <option value="both">Wet + stool</option>
+        </select>
+      </label>
+      <button class="add" id="addDiaper">+ Log diaper</button>
+    </div>
+    <ul class="entries" id="diaperList"></ul>
+    <p class="muted" id="diaperEmpty">No diapers logged yet today.</p>
+  </section>
+
+  <section class="card">
+    <h2>💾 Backup &amp; share data</h2>
+    <div class="databar">
+      <button id="btnExport">Export data</button>
+      <button id="btnImport">Import data</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+    <p class="muted">Export saves all logs to a file you can send to another phone; Import merges it in. Data lives on this device only.</p>
+  </section>
+</main>
+
+<main id="viewHistory" hidden></main>
+
+<script>
+"use strict";
+/* ===== helpers ===== */
+const RETENTION_DAYS = 183;
+const STORE_KEY = "nightday-babylog-v1";
+const typeLabel = { wet: "Wet", stool: "Stool", both: "Wet + stool" };
+
+// A "day" runs 8 AM -> 8 AM; times before 8 AM belong to the previous date.
+function dayKeyFor(date) {
+  const d = new Date(date);
+  if (d.getHours() < 8) d.setDate(d.getDate() - 1);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function nowLocalInput() {
+  const d = new Date(); d.setSeconds(0,0);
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+function fmtTime(iso) { return new Date(iso).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); }
+function fmtDur(min) {
+  const h = Math.floor(min/60), m = Math.round(min%60);
+  return h > 0 ? h + "h " + m + "m" : m + "m";
+}
+function fmtDayLabel(key) {
+  return new Date(key + "T12:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"});
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+/* ===== data ===== */
+let db = {}; // { "YYYY-MM-DD": { sleeps:[], feeds:[], diapers:[] } }
+
+function load() {
+  try { db = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { db = {}; }
+  prune();
+}
+function save() {
+  prune();
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+  catch (e) { alert("Could not save — device storage may be full."); }
+}
+function prune() {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
+  const ck = dayKeyFor(cutoff);
+  for (const k of Object.keys(db)) if (k < ck) delete db[k];
+}
+function day(key) {
+  if (!db[key]) db[key] = { sleeps: [], feeds: [], diapers: [] };
+  return db[key];
+}
+function summarize(d) {
+  let sleepMin = 0, ml = 0, wet = 0, stool = 0;
+  d.sleeps.forEach(e => sleepMin += Math.max(0, (new Date(e.end) - new Date(e.start)) / 60000));
+  d.feeds.forEach(e => ml += Number(e.ml) || 0);
+  d.diapers.forEach(e => {
+    if (e.type === "wet" || e.type === "both") wet++;
+    if (e.type === "stool" || e.type === "both") stool++;
+  });
+  return { sleepMin, ml, wet, stool };
+}
+
+/* ===== rendering ===== */
+let todayKey = dayKeyFor(new Date());
+
+function renderTotals() {
+  const s = summarize(day(todayKey));
+  document.getElementById("tSleep").textContent = fmtDur(s.sleepMin);
+  document.getElementById("tMl").textContent = s.ml + " ml";
+  document.getElementById("tWet").textContent = s.wet;
+  document.getElementById("tStool").textContent = s.stool;
+  document.getElementById("dayLabel").textContent = fmtDayLabel(todayKey);
+}
+
+// Which entry (if any) is currently open for editing.
+let editing = { kind: null, id: null };
+
+function toLocalInput(iso) {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+
+function entryLi(html, kind, id) {
+  const li = document.createElement("li");
+  li.className = "entry";
+  li.innerHTML =
+    '<div class="body">' + html + '</div>' +
+    '<div class="entry-actions">' +
+      '<button class="edit" aria-label="Edit entry" data-kind="' + kind + '" data-id="' + id + '">✏️</button>' +
+      '<button class="del" aria-label="Delete entry" data-kind="' + kind + '" data-id="' + id + '">🗑</button>' +
+    '</div>';
+  return li;
+}
+
+function editForm(kind, e) {
+  const li = document.createElement("li");
+  li.className = "entry editing";
+  if (kind === "sleeps") {
+    li.innerHTML =
+      '<div class="edit-form">' +
+        '<label class="field"><span>Fell asleep</span><input type="datetime-local" class="ef-start" value="' + toLocalInput(e.start) + '"></label>' +
+        '<label class="field"><span>Woke up</span><input type="datetime-local" class="ef-end" value="' + toLocalInput(e.end) + '"></label>' +
+      '</div><p class="error" hidden></p>' +
+      '<div class="edit-actions"><button class="save-btn">Save</button><button class="cancel-btn">Cancel</button></div>';
+  } else if (kind === "feeds") {
+    li.innerHTML =
+      '<div class="edit-form">' +
+        '<label class="field"><span>Time</span><input type="datetime-local" class="ef-time" value="' + toLocalInput(e.time) + '"></label>' +
+        '<label class="field small"><span>Amount (ml)</span><input type="number" min="0" class="ef-ml" value="' + esc(String(e.ml)) + '"></label>' +
+        '<label class="field"><span>Supplements added</span><input type="text" class="ef-supp" value="' + esc(e.supplements || "") + '"></label>' +
+      '</div><p class="error" hidden></p>' +
+      '<div class="edit-actions"><button class="save-btn">Save</button><button class="cancel-btn">Cancel</button></div>';
+  } else {
+    const opts = ["wet","stool","both"].map(v =>
+      '<option value="' + v + '"' + (v === e.type ? " selected" : "") + ">" + typeLabel[v] + "</option>").join("");
+    li.innerHTML =
+      '<div class="edit-form">' +
+        '<label class="field"><span>Time</span><input type="datetime-local" class="ef-time" value="' + toLocalInput(e.time) + '"></label>' +
+        '<label class="field"><span>Type</span><select class="ef-type">' + opts + '</select></label>' +
+      '</div>' +
+      '<div class="edit-actions"><button class="save-btn">Save</button><button class="cancel-btn">Cancel</button></div>';
+  }
+  li.querySelector(".cancel-btn").onclick = () => { editing = { kind: null, id: null }; renderToday(); };
+  li.querySelector(".save-btn").onclick = () => saveEdit(kind, e.id, li);
+  return li;
+}
+
+function saveEdit(kind, id, li) {
+  const d = day(todayKey);
+  const entry = d[kind].find(x => x.id === id);
+  if (!entry) return;
+  const errEl = li.querySelector(".error");
+
+  if (kind === "sleeps") {
+    const s = li.querySelector(".ef-start").value, e = li.querySelector(".ef-end").value;
+    if (!s || !e || new Date(e) <= new Date(s)) {
+      if (errEl) { errEl.textContent = "End time must be after start time."; errEl.hidden = false; }
+      return;
+    }
+    entry.start = new Date(s).toISOString();
+    entry.end = new Date(e).toISOString();
+    moveEntryIfDayChanged(kind, entry, entry.start);
+  } else if (kind === "feeds") {
+    const t = li.querySelector(".ef-time").value, ml = Number(li.querySelector(".ef-ml").value);
+    if (!t || !ml || ml <= 0) {
+      if (errEl) { errEl.textContent = "Enter the amount in ml."; errEl.hidden = false; }
+      return;
+    }
+    entry.time = new Date(t).toISOString();
+    entry.ml = ml;
+    entry.supplements = li.querySelector(".ef-supp").value.trim();
+    moveEntryIfDayChanged(kind, entry, entry.time);
+  } else {
+    const t = li.querySelector(".ef-time").value;
+    if (!t) return;
+    entry.time = new Date(t).toISOString();
+    entry.type = li.querySelector(".ef-type").value;
+    moveEntryIfDayChanged(kind, entry, entry.time);
+  }
+
+  editing = { kind: null, id: null };
+  save();
+  renderToday();
+  if (!histView.hidden) renderHistory();
+}
+
+// If editing the time moves an entry into a different 8am-8am day, relocate it.
+function moveEntryIfDayChanged(kind, entry, iso) {
+  const newKey = dayKeyFor(new Date(iso));
+  if (newKey === todayKey) return;
+  const oldList = day(todayKey)[kind];
+  const idx = oldList.findIndex(x => x.id === entry.id);
+  if (idx !== -1) oldList.splice(idx, 1);
+  day(newKey)[kind].push(entry);
+}
+
+function renderToday() {
+  const d = day(todayKey);
+  const byTime = (a,b) => new Date(a.start||a.time) - new Date(b.start||b.time);
+
+  const sl = document.getElementById("sleepList"); sl.innerHTML = "";
+  [...d.sleeps].sort(byTime).forEach(e => {
+    if (editing.kind === "sleeps" && editing.id === e.id) { sl.appendChild(editForm("sleeps", e)); return; }
+    sl.appendChild(entryLi(
+      esc(fmtTime(e.start)) + " → " + esc(fmtTime(e.end)) +
+      ' <span class="chip">' + fmtDur((new Date(e.end)-new Date(e.start))/60000) + "</span>",
+      "sleeps", e.id));
+  });
+  document.getElementById("sleepEmpty").hidden = d.sleeps.length > 0;
+
+  const fl = document.getElementById("feedList"); fl.innerHTML = "";
+  [...d.feeds].sort(byTime).forEach(e => {
+    if (editing.kind === "feeds" && editing.id === e.id) { fl.appendChild(editForm("feeds", e)); return; }
+    fl.appendChild(entryLi(
+      esc(fmtTime(e.time)) + ' <span class="chip">' + esc(String(e.ml)) + " ml</span>" +
+      (e.supplements ? ' <span class="supp">+ ' + esc(e.supplements) + "</span>" : ""),
+      "feeds", e.id));
+  });
+  document.getElementById("feedEmpty").hidden = d.feeds.length > 0;
+
+  const dl = document.getElementById("diaperList"); dl.innerHTML = "";
+  [...d.diapers].sort(byTime).forEach(e => {
+    if (editing.kind === "diapers" && editing.id === e.id) { dl.appendChild(editForm("diapers", e)); return; }
+    dl.appendChild(entryLi(
+      esc(fmtTime(e.time)) + ' <span class="chip">' + typeLabel[e.type] + "</span>",
+      "diapers", e.id));
+  });
+  document.getElementById("diaperEmpty").hidden = d.diapers.length > 0;
+
+  renderTotals();
+}
+
+function renderHistory() {
+  const view = document.getElementById("viewHistory");
+  view.innerHTML = "";
+  const keys = Object.keys(db).filter(k => k !== todayKey).sort().reverse();
+  if (keys.length === 0) {
+    view.innerHTML = '<p class="muted">No past days yet. Each day (8 AM to 8 AM) is saved here automatically and kept for six months.</p>';
+    return;
+  }
+  keys.forEach(key => {
+    const s = summarize(db[key]);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<button class="hist-row" data-key="' + key + '">' +
+        '<span class="hist-date">' + fmtDayLabel(key) + "</span>" +
+        '<span class="hist-stats">' +
+          '<span style="color:#5C74C4">' + fmtDur(s.sleepMin) + "</span>" +
+          '<span style="color:#D98B4E">' + s.ml + " ml</span>" +
+          '<span style="color:#5D9468">' + s.wet + " wet · " + s.stool + " stool</span>" +
+        "</span><span>▾</span></button>" +
+      '<div class="hist-detail" hidden></div>';
+    view.appendChild(card);
+  });
+}
+
+function renderDetail(container, key) {
+  const d = db[key];
+  const line = (kind, e, text) =>
+    '<p class="hist-line" data-kind="' + kind + '" data-id="' + e.id + '" data-key="' + key + '">' + text +
+    ' <button class="edit" data-kind="' + kind + '" data-id="' + e.id + '" data-key="' + key + '">✏️</button>' +
+    '<button class="del" data-kind="' + kind + '" data-id="' + e.id + '" data-key="' + key + '">🗑</button></p>';
+  const sec = (title, lines) =>
+    "<div><h3>" + title + "</h3>" + (lines.length ? lines.join("") : '<p class="muted">None logged.</p>') + "</div>";
+  container.innerHTML =
+    sec("Sleep", d.sleeps.map(e => line("sleeps", e, esc(fmtTime(e.start)) + " → " + esc(fmtTime(e.end)) + " · " + fmtDur((new Date(e.end)-new Date(e.start))/60000)))) +
+    sec("Formula", d.feeds.map(e => line("feeds", e, esc(fmtTime(e.time)) + " · " + esc(String(e.ml)) + " ml" + (e.supplements ? " · + " + esc(e.supplements) : "")))) +
+    sec("Diapers", d.diapers.map(e => line("diapers", e, esc(fmtTime(e.time)) + " · " + typeLabel[e.type])));
+}
+
+/* ===== day rollover ===== */
+function checkRollover() {
+  const k = dayKeyFor(new Date());
+  if (k !== todayKey) { todayKey = k; renderToday(); if (!histView.hidden) renderHistory(); }
+}
+setInterval(checkRollover, 60000);
+
+/* ===== events ===== */
+const histView = document.getElementById("viewHistory");
+const todayView = document.getElementById("viewToday");
+
+function resetTimes() {
+  ["sleepStart","sleepEnd","feedTime","diaperTime"].forEach(id => document.getElementById(id).value = nowLocalInput());
+}
+
+document.getElementById("addSleep").onclick = () => {
+  checkRollover();
+  const s = document.getElementById("sleepStart").value, e = document.getElementById("sleepEnd").value;
+  const err = document.getElementById("sleepErr");
+  if (!s || !e || new Date(e) <= new Date(s)) { err.textContent = "End time must be after start time."; err.hidden = false; return; }
+  err.hidden = true;
+  day(dayKeyFor(new Date(s))).sleeps.push({ id: uid(), start: new Date(s).toISOString(), end: new Date(e).toISOString() });
+  save(); resetTimes(); renderToday();
+};
+
+document.getElementById("addFeed").onclick = () => {
+  checkRollover();
+  const t = document.getElementById("feedTime").value;
+  const ml = Number(document.getElementById("feedMl").value);
+  const err = document.getElementById("feedErr");
+  if (!t || !ml || ml <= 0) { err.textContent = "Enter the amount in ml."; err.hidden = false; return; }
+  err.hidden = true;
+  day(dayKeyFor(new Date(t))).feeds.push({ id: uid(), time: new Date(t).toISOString(), ml, supplements: document.getElementById("feedSupp").value.trim() });
+  document.getElementById("feedMl").value = ""; document.getElementById("feedSupp").value = "";
+  save(); resetTimes(); renderToday();
+};
+
+document.getElementById("addDiaper").onclick = () => {
+  checkRollover();
+  const t = document.getElementById("diaperTime").value;
+  if (!t) return;
+  day(dayKeyFor(new Date(t))).diapers.push({ id: uid(), time: new Date(t).toISOString(), type: document.getElementById("diaperType").value });
+  save(); resetTimes(); renderToday();
+};
+
+todayView.addEventListener("click", (ev) => {
+  const delBtn = ev.target.closest(".del");
+  if (delBtn) {
+    const { kind, id } = delBtn.dataset;
+    const d = day(todayKey);
+    d[kind] = d[kind].filter(e => e.id !== id);
+    if (editing.kind === kind && editing.id === id) editing = { kind: null, id: null };
+    save(); renderToday();
+    return;
+  }
+  const editBtn = ev.target.closest(".edit");
+  if (editBtn) {
+    editing = { kind: editBtn.dataset.kind, id: editBtn.dataset.id };
+    renderToday();
+  }
+});
+
+histView.addEventListener("click", (ev) => {
+  const delBtn = ev.target.closest(".hist-detail .del");
+  if (delBtn) {
+    const { kind, id, key } = delBtn.dataset;
+    if (db[key]) {
+      db[key][kind] = db[key][kind].filter(e => e.id !== id);
+      save();
+      const detail = delBtn.closest(".hist-detail");
+      renderDetail(detail, key);
+    }
+    return;
+  }
+  const editBtn = ev.target.closest(".hist-detail .edit");
+  if (editBtn) {
+    const { kind, id, key } = editBtn.dataset;
+    editPastEntry(kind, id, key);
+    return;
+  }
+  const row = ev.target.closest(".hist-row");
+  if (!row) return;
+  const detail = row.parentElement.querySelector(".hist-detail");
+  if (detail.hidden) { renderDetail(detail, row.dataset.key); detail.hidden = false; }
+  else detail.hidden = true;
+});
+
+// Simple prompt-based editing for entries in past (collapsed) days.
+function editPastEntry(kind, id, key) {
+  const d = db[key];
+  if (!d) return;
+  const entry = d[kind].find(e => e.id === id);
+  if (!entry) return;
+
+  if (kind === "sleeps") {
+    const s = prompt("Fell asleep (e.g. 2026-07-14 21:30):", toLocalInput(entry.start).replace("T", " "));
+    if (s === null) return;
+    const e2 = prompt("Woke up (e.g. 2026-07-15 05:00):", toLocalInput(entry.end).replace("T", " "));
+    if (e2 === null) return;
+    const ns = new Date(s.replace(" ", "T")), ne = new Date(e2.replace(" ", "T"));
+    if (isNaN(ns) || isNaN(ne) || ne <= ns) { alert("Invalid times — end must be after start."); return; }
+    entry.start = ns.toISOString(); entry.end = ne.toISOString();
+    relocateAcrossDays(kind, entry, key, entry.start);
+  } else if (kind === "feeds") {
+    const t = prompt("Time (e.g. 2026-07-14 13:15):", toLocalInput(entry.time).replace("T", " "));
+    if (t === null) return;
+    const mlStr = prompt("Amount in ml:", String(entry.ml));
+    if (mlStr === null) return;
+    const ml = Number(mlStr);
+    if (!ml || ml <= 0) { alert("Invalid amount."); return; }
+    const supp = prompt("Supplements added (leave blank for none):", entry.supplements || "");
+    const nt = new Date(t.replace(" ", "T"));
+    if (isNaN(nt)) { alert("Invalid time."); return; }
+    entry.time = nt.toISOString(); entry.ml = ml; entry.supplements = (supp || "").trim();
+    relocateAcrossDays(kind, entry, key, entry.time);
+  } else {
+    const t = prompt("Time (e.g. 2026-07-14 13:15):", toLocalInput(entry.time).replace("T", " "));
+    if (t === null) return;
+    const typ = prompt("Type — wet, stool, or both:", entry.type);
+    if (typ === null) return;
+    if (!["wet","stool","both"].includes(typ)) { alert("Type must be wet, stool, or both."); return; }
+    const nt = new Date(t.replace(" ", "T"));
+    if (isNaN(nt)) { alert("Invalid time."); return; }
+    entry.time = nt.toISOString(); entry.type = typ;
+    relocateAcrossDays(kind, entry, key, entry.time);
+  }
+
+  save();
+  renderHistory();
+  renderToday();
+}
+
+function relocateAcrossDays(kind, entry, oldKey, iso) {
+  const newKey = dayKeyFor(new Date(iso));
+  if (newKey === oldKey) return;
+  const oldList = db[oldKey][kind];
+  const idx = oldList.findIndex(x => x.id === entry.id);
+  if (idx !== -1) oldList.splice(idx, 1);
+  day(newKey)[kind].push(entry);
+}
+
+document.getElementById("tabToday").onclick = () => {
+  document.getElementById("tabToday").classList.add("active");
+  document.getElementById("tabHistory").classList.remove("active");
+  todayView.hidden = false; histView.hidden = true;
+};
+document.getElementById("tabHistory").onclick = () => {
+  document.getElementById("tabHistory").classList.add("active");
+  document.getElementById("tabToday").classList.remove("active");
+  checkRollover(); renderHistory();
+  todayView.hidden = true; histView.hidden = false;
+};
+
+/* ===== export / import ===== */
+document.getElementById("btnExport").onclick = () => {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "baby-log-" + todayKey + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.getElementById("btnImport").onclick = () => document.getElementById("importFile").click();
+document.getElementById("importFile").onchange = (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const incoming = JSON.parse(reader.result);
+      let added = 0;
+      for (const key of Object.keys(incoming)) {
+        const src = incoming[key];
+        const dst = day(key);
+        for (const kind of ["sleeps", "feeds", "diapers"]) {
+          const have = new Set(dst[kind].map(e => e.id));
+          (src[kind] || []).forEach(e => { if (e && e.id && !have.has(e.id)) { dst[kind].push(e); added++; } });
+        }
+      }
+      save(); renderToday(); if (!histView.hidden) renderHistory();
+      alert("Import complete — " + added + " new entries merged.");
+    } catch { alert("That file could not be read. Make sure it's an export from this app."); }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+};
+
+/* ===== init ===== */
+load();
+resetTimes();
+renderToday();
+</script>
+</body>
+</html>
